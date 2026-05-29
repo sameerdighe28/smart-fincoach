@@ -11,7 +11,18 @@ if _db_url.startswith("postgresql://"):
 elif _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(_db_url, echo=False, pool_size=5, max_overflow=10)
+# asyncpg needs ssl as a connect_arg, not a query param
+_connect_args = {}
+if "supabase" in _db_url or settings.APP_ENV == "production":
+    import ssl
+    _ssl_ctx = ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = ssl.CERT_NONE
+    _connect_args = {"ssl": _ssl_ctx, "statement_cache_size": 0}
+    # Remove sslmode param if present (asyncpg doesn't support it in URL)
+    _db_url = _db_url.split("?sslmode")[0]
+
+engine = create_async_engine(_db_url, echo=False, pool_size=5, max_overflow=10, connect_args=_connect_args, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
