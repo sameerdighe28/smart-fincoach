@@ -39,12 +39,6 @@ engine = create_async_engine(
     **_pool_kwargs,
 )
 
-# Disable prepared statements at the engine level for pgbouncer compatibility
-from sqlalchemy import event
-
-@event.listens_for(engine.sync_engine, "connect")
-def _on_connect(dbapi_conn, connection_record):
-    dbapi_conn._statement_cache_size = 0
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
