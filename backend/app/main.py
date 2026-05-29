@@ -1,0 +1,54 @@
+"""FastAPI application entry point."""
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+
+from app.core.config import get_settings
+from app.core.database import engine, Base, async_session
+from app.core.seed import seed_categories_and_rules
+from app.api import uploads, transactions, categories, dashboard
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create tables + seed
+    async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await conn.run_sync(Base.metadata.create_all)
+    async with async_session() as db:
+        await seed_categories_and_rules(db)
+    yield
+    # Shutdown
+    await engine.dispose()
+
+
+settings = get_settings()
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="Smart personal finance ledger with AI-powered categorization & coaching",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routers
+app.include_router(uploads.router)
+app.include_router(transactions.router)
+app.include_router(categories.router)
+app.include_router(dashboard.router)
+
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok", "app": settings.APP_NAME}
+
