@@ -4,7 +4,14 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False, pool_size=5, max_overflow=10)
+# Ensure the URL uses asyncpg driver
+_db_url = settings.DATABASE_URL
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
+engine = create_async_engine(_db_url, echo=False, pool_size=5, max_overflow=10)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
