@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
 from functools import lru_cache
 import os
 
@@ -29,19 +28,16 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
     MAX_UPLOAD_SIZE_MB: int = 20
 
-    # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    # CORS - stored as comma-separated string to avoid pydantic-settings JSON parsing issues
+    CORS_ORIGINS: str = "http://localhost:3000"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors(cls, v):
-        if isinstance(v, str):
-            import json
-            try:
-                return json.loads(v)
-            except json.JSONDecodeError:
-                return [s.strip() for s in v.split(",")]
-        return v
+    @property
+    def cors_origins_list(self) -> list[str]:
+        import json
+        try:
+            return json.loads(self.CORS_ORIGINS)
+        except (json.JSONDecodeError, TypeError):
+            return [s.strip() for s in self.CORS_ORIGINS.split(",") if s.strip()]
 
     # Budget defaults
     DEFAULT_ALERT_THRESHOLD_PCT: int = 80  # warn at 80% of budget
