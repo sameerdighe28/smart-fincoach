@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -13,7 +14,7 @@ elif _db_url.startswith("postgres://"):
 
 # asyncpg needs ssl as a connect_arg, not a query param
 # Always disable statement_cache_size for pgbouncer compatibility
-_connect_args = {"statement_cache_size": 0}
+_connect_args = {"statement_cache_size": 0, "prepared_statement_cache_size": 0}
 if "supabase" in _db_url or "pooler" in _db_url or settings.APP_ENV == "production":
     import ssl
     _ssl_ctx = ssl.create_default_context()
@@ -26,7 +27,11 @@ if "supabase" in _db_url or "pooler" in _db_url or settings.APP_ENV == "producti
     elif "&sslmode" in _db_url:
         _db_url = _db_url.split("&sslmode")[0]
 
-engine = create_async_engine(_db_url, echo=False, pool_size=5, max_overflow=10, connect_args=_connect_args, pool_pre_ping=True)
+# Use NullPool when behind pgbouncer (it handles pooling)
+_use_nullpool = "pooler" in _db_url or "supabase" in _db_url or settings.APP_ENV == "production"
+_pool_kwargs = {"poolclass": NullPool} if _use_nullpool else {"pool_size": 5, "max_overflow": 10}
+
+engine = create_async_engine(_db_url, echo=False, connect_args=_connect_args, pool_pre_ping=True, **_pool_kwargs)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
