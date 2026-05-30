@@ -118,6 +118,31 @@ Reply with JUST the category name, nothing else."""
     return None, 0.0
 
 
+# ── Transaction type correction based on category ─────────────────────────────
+
+# Categories that are ALWAYS expenses even if credit (e.g., loan disbursement is different)
+EXPENSE_CATEGORIES = {"EMI & Loans", "Rent", "Bills & Utilities", "Subscriptions", "Insurance"}
+# Categories that override to INCOME if credited
+INCOME_CATEGORIES = {"Salary", "Freelance", "Cashback & Rewards"}
+# Categories that override type
+REFUND_CATEGORIES = {"Refund"}
+
+
+async def _fix_transaction_type(txn: Transaction, cat_id, categories: list) -> None:
+    """Override transaction_type based on category when appropriate."""
+    cat = next((c for c in categories if c.id == cat_id), None)
+    if not cat:
+        return
+    if txn.is_debit and cat.name in EXPENSE_CATEGORIES:
+        txn.transaction_type = TransactionType.EXPENSE
+    elif not txn.is_debit and cat.name in INCOME_CATEGORIES:
+        txn.transaction_type = TransactionType.INCOME
+    elif cat.name in REFUND_CATEGORIES:
+        txn.transaction_type = TransactionType.REFUND
+    elif txn.is_debit and txn.transaction_type != TransactionType.TRANSFER:
+        txn.transaction_type = TransactionType.EXPENSE
+
+
 # ── Main categorization pipeline ─────────────────────────────────────────────
 
 async def categorize_transaction(txn: Transaction, db: AsyncSession) -> None:
@@ -143,6 +168,8 @@ async def categorize_transaction(txn: Transaction, db: AsyncSession) -> None:
         txn.category_id = cat_id
         txn.categorization_source = "RULE"
         txn.categorization_confidence = 1.0
+        # Fix: EMI/Loans debits should always be EXPENSE even if rule matches
+        await _fix_transaction_type(txn, cat_id, categories)
         return
 
     # Tier 2: Merchant cache
@@ -151,6 +178,7 @@ async def categorize_transaction(txn: Transaction, db: AsyncSession) -> None:
         txn.category_id = cat_id
         txn.categorization_source = "EMBEDDING"
         txn.categorization_confidence = 0.95
+        await _fix_transaction_type(txn, cat_id, categories)
         return
 
     # Tier 3: LLM
@@ -159,6 +187,7 @@ async def categorize_transaction(txn: Transaction, db: AsyncSession) -> None:
         txn.category_id = cat_id
         txn.categorization_source = "LLM"
         txn.categorization_confidence = confidence
+        await _fix_transaction_type(txn, cat_id, categories)
         return
 
 

@@ -25,16 +25,28 @@ async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // Auth
-  login: async (password: string, otp: string) => {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+  // Auth - 2-step login
+  loginStep1: async (email: string, password: string) => {
+    const res = await fetch(`${API_BASE}/api/auth/login/step1`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password, otp }),
+      body: JSON.stringify({ email, password }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: "Login failed" }));
       throw new Error(err.detail || `Login failed ${res.status}`);
+    }
+    return res.json() as Promise<{ session_token: string; message: string }>;
+  },
+  loginStep2: async (email: string, otp: string, sessionToken: string) => {
+    const res = await fetch(`${API_BASE}/api/auth/login/step2`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, session_token: sessionToken }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "OTP verification failed" }));
+      throw new Error(err.detail || `OTP failed ${res.status}`);
     }
     return res.json() as Promise<{ access_token: string; expires_at: string }>;
   },
@@ -85,10 +97,16 @@ export const api = {
   },
   createBudget: (body: { category_id: string; month: string; limit_amount: number }) =>
     fetchAPI<any>("/api/budgets", { method: "POST", body: JSON.stringify(body) }),
+  deleteBudget: (id: string) => fetchAPI<any>(`/api/budgets/${id}`, { method: "DELETE" }),
+  updateBudget: (id: string, body: { limit_amount: number }) =>
+    fetchAPI<any>(`/api/budgets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   generateAdaptive: () => fetchAPI<any>("/api/budgets/generate-adaptive", { method: "POST" }),
 
   // Dashboard & Insights
-  getDashboard: () => fetchAPI<any>("/api/dashboard"),
+  getDashboard: (month?: string) => {
+    const qs = month ? `?month=${month}` : "";
+    return fetchAPI<any>(`/api/dashboard${qs}`);
+  },
   getAiInsight: () => fetchAPI<{ insight: string }>("/api/insights/ai"),
   getSubscriptions: () => fetchAPI<any>("/api/insights/subscriptions"),
 

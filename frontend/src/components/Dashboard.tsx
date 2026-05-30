@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Wallet, ArrowUpRight, ArrowDownRight,
-  Repeat, Sparkles, Bell, PieChart as PieIcon
+  Repeat, Sparkles, Bell, PieChart as PieIcon, Calendar
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip
@@ -15,6 +15,24 @@ const COLORS = [
   "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4",
   "#3b82f6", "#6366f1", "#a855f7", "#ec4899", "#78716c",
 ];
+
+type MonthPreset = "this_month" | "last_month" | "custom";
+
+function getMonthStr(preset: MonthPreset, custom: string): string | undefined {
+  const now = new Date();
+  switch (preset) {
+    case "this_month":
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    case "last_month": {
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    }
+    case "custom":
+      return custom || undefined;
+    default:
+      return undefined;
+  }
+}
 
 function StatCard({ label, value, icon: Icon, trend, color }: {
   label: string; value: string; icon: any; trend?: string; color: string;
@@ -36,12 +54,19 @@ export default function Dashboard() {
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [monthPreset, setMonthPreset] = useState<MonthPreset>("this_month");
+  const [customMonth, setCustomMonth] = useState("");
 
-  useEffect(() => {
-    api.getDashboard()
+  const loadData = () => {
+    setError(null);
+    setData(null);
+    const month = getMonthStr(monthPreset, customMonth);
+    api.getDashboard(month)
       .then(setData)
       .catch((e) => setError(e.message));
-  }, []);
+  };
+
+  useEffect(() => { loadData(); }, [monthPreset, customMonth]);
 
   const loadInsight = async () => {
     setLoadingInsight(true);
@@ -79,6 +104,31 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Date filter */}
+      <div className="flex items-center gap-3">
+        <Calendar className="w-4 h-4 text-[var(--muted)]" />
+        <select
+          value={monthPreset}
+          onChange={(e) => setMonthPreset(e.target.value as MonthPreset)}
+          className="px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm focus:outline-none"
+        >
+          <option value="this_month">This Month</option>
+          <option value="last_month">Last Month</option>
+          <option value="custom">Custom Month</option>
+        </select>
+        {monthPreset === "custom" && (
+          <input
+            type="month"
+            value={customMonth}
+            onChange={(e) => setCustomMonth(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm"
+          />
+        )}
+        <span className="text-xs text-[var(--muted)]">
+          Showing: {cur.month}
+        </span>
+      </div>
+
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Income" value={formatCurrency(Number(cur.total_income))} icon={ArrowDownRight} color="#22c55e" />
@@ -182,4 +232,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

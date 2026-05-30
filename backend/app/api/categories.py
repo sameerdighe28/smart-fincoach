@@ -125,3 +125,17 @@ async def delete_budget(budget_id: UUID, db: AsyncSession = Depends(get_db)):
     await db.delete(b)
     return {"ok": True}
 
+
+@router.patch("/budgets/{budget_id}")
+async def update_budget(budget_id: UUID, body: dict, db: AsyncSession = Depends(get_db)):
+    b = await db.get(Budget, budget_id)
+    if not b:
+        raise HTTPException(404)
+    if "limit_amount" in body:
+        b.limit_amount = Decimal(str(body["limit_amount"]))
+    if "alert_threshold_pct" in body:
+        b.alert_threshold_pct = body["alert_threshold_pct"]
+    await db.flush()
+    return {"ok": True}
+
+

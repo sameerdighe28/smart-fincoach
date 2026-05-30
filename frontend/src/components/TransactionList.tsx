@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Search, Filter, ArrowUpRight, ArrowDownRight, Link2, Unlink } from "lucide-react";
+import { Search, ArrowUpRight, ArrowDownRight, Link2, Unlink, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate, SOURCE_LABELS } from "@/lib/utils";
 import type { Transaction, Category } from "@/lib/types";
@@ -20,29 +20,86 @@ const RECON_BADGES: Record<string, { icon: any; color: string; tip: string }> = 
   UNMATCHED: { icon: Unlink, color: "text-[var(--muted)]", tip: "Unmatched" },
 };
 
+type DatePreset = "this_week" | "last_week" | "this_month" | "last_month" | "custom" | "";
+
+function getDateRange(preset: DatePreset): { from?: string; to?: string } {
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+
+  switch (preset) {
+    case "this_week": {
+      const day = now.getDay() || 7;
+      const start = new Date(now);
+      start.setDate(now.getDate() - day + 1);
+      return { from: fmt(start), to: fmt(now) };
+    }
+    case "last_week": {
+      const day = now.getDay() || 7;
+      const end = new Date(now);
+      end.setDate(now.getDate() - day);
+      const start = new Date(end);
+      start.setDate(end.getDate() - 6);
+      return { from: fmt(start), to: fmt(end) };
+    }
+    case "this_month": {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: fmt(start), to: fmt(now) };
+    }
+    case "last_month": {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: fmt(start), to: fmt(end) };
+    }
+    default:
+      return {};
+  }
+}
+
+const PAGE_SIZE = 50;
+
 export default function TransactionList() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterSource, setFilterSource] = useState("");
-  const [filterMonth, setFilterMonth] = useState("");
+  const [datePreset, setDatePreset] = useState<DatePreset>("");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  const load = async () => {
+  const load = async (pageNum = page) => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (search) params.search = search;
       if (filterSource) params.source = filterSource;
-      if (filterMonth) params.month = filterMonth;
+
+      // Date filtering
+      if (datePreset === "custom") {
+        if (customFrom) params.date_from = customFrom;
+        if (customTo) params.date_to = customTo;
+      } else if (datePreset) {
+        const range = getDateRange(datePreset);
+        if (range.from) params.date_from = range.from;
+        if (range.to) params.date_to = range.to;
+      }
+
+      params.limit = String(PAGE_SIZE);
+      params.offset = String(pageNum * PAGE_SIZE);
+
       const [t, c] = await Promise.all([api.getTransactions(params), api.getCategories()]);
       setTxns(t);
       setCategories(c);
+      setHasMore(t.length === PAGE_SIZE);
     } catch { }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [filterSource, filterMonth]);
+  useEffect(() => { setPage(0); load(0); }, [filterSource, datePreset, customFrom, customTo]);
+
+  useEffect(() => { load(); }, [page]);
 
   const handleCategoryChange = async (txnId: string, categoryId: string) => {
     try {
@@ -60,7 +117,7 @@ export default function TransactionList() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load()}
+            onKeyDown={(e) => e.key === "Enter" && load(0)}
             placeholder="Search narration, merchant..."
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm focus:outline-none focus:border-brand-500"
           />
@@ -75,13 +132,39 @@ export default function TransactionList() {
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
-        <input
-          type="month"
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
+        <select
+          value={datePreset}
+          onChange={(e) => setDatePreset(e.target.value as DatePreset)}
           className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm focus:outline-none"
-        />
+        >
+          <option value="">All Time</option>
+          <option value="this_week">This Week</option>
+          <option value="last_week">Last Week</option>
+          <option value="this_month">This Month</option>
+          <option value="last_month">Last Month</option>
+          <option value="custom">Custom Date</option>
+        </select>
       </div>
+
+      {/* Custom date range */}
+      {datePreset === "custom" && (
+        <div className="flex gap-3 items-center">
+          <Calendar className="w-4 h-4 text-[var(--muted)]" />
+          <input
+            type="date"
+            value={customFrom}
+            onChange={(e) => setCustomFrom(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm"
+          />
+          <span className="text-xs text-[var(--muted)]">to</span>
+          <input
+            type="date"
+            value={customTo}
+            onChange={(e) => setCustomTo(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--card-border)] text-sm"
+          />
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl bg-[var(--card)] border border-[var(--card-border)] overflow-hidden">
@@ -159,8 +242,30 @@ export default function TransactionList() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--card-border)]">
+          <span className="text-xs text-[var(--muted)]">
+            Page {page + 1} • Showing {txns.length} transactions
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+              className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage(page + 1)}
+              disabled={!hasMore}
+              className="p-1.5 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

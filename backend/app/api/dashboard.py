@@ -20,8 +20,18 @@ router = APIRouter(prefix="/api", tags=["dashboard", "insights"])
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
-async def get_dashboard(db: AsyncSession = Depends(get_db)):
-    today = date.today()
+async def get_dashboard(
+    month: str | None = Query(None, description="YYYY-MM format, defaults to current month"),
+    db: AsyncSession = Depends(get_db),
+):
+    if month:
+        try:
+            y, m = month.split("-")
+            today = date(int(y), int(m), 15)
+        except Exception:
+            today = date.today()
+    else:
+        today = date.today()
     current = await get_month_summary(db, today)
     prev_date = today.replace(day=1) - timedelta(days=1)
     previous = await get_month_summary(db, prev_date)

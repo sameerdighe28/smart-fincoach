@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     FILE_ENCRYPTION_KEY: str = ""
 
     # Admin auth
+    ADMIN_EMAIL: str = "admin@fincoach.app"
     ADMIN_PASSWORD: str = "change-me"
     ADMIN_OTP: str = "123456"
     JWT_SECRET: str = "change-me-jwt-secret-use-openssl-rand-hex-32"

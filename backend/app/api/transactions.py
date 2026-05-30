@@ -22,6 +22,8 @@ async def list_transactions(
     category_id: UUID | None = None,
     txn_type: TransactionType | None = None,
     month: str | None = Query(None, description="YYYY-MM"),
+    date_from: date | None = Query(None, description="YYYY-MM-DD"),
+    date_to: date | None = Query(None, description="YYYY-MM-DD"),
     is_unmatched: bool | None = None,
     is_self_transfer: bool | None = None,
     search: str | None = None,
@@ -48,6 +50,10 @@ async def list_transactions(
             q = q.where(Transaction.txn_date >= m_start, Transaction.txn_date < m_end)
         except Exception:
             pass
+    if date_from:
+        q = q.where(Transaction.txn_date >= date_from)
+    if date_to:
+        q = q.where(Transaction.txn_date <= date_to)
     if is_unmatched is True:
         q = q.where(Transaction.reconciled_with_id.is_(None))
     if is_self_transfer is not None:
