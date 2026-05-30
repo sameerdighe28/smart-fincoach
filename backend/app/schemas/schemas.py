@@ -124,6 +124,7 @@ class MonthSummary(BaseModel):
     total_income: Decimal
     total_expense: Decimal
     total_transfer: Decimal
+    total_investment: Decimal = Decimal("0")
     savings: Decimal
     savings_rate: float  # percentage
 

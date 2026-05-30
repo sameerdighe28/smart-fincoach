@@ -13,6 +13,39 @@ services:
         sync: false
       - key: DEBUG
         value: "false"
+      - key: APP_ENV
+        value: "production"
       - key: CORS_ORIGINS
         sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_OTP
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NOTIFICATION_EMAIL
+        sync: false
 
+  # Nightly analysis cron job (runs at 11:30 PM IST = 18:00 UTC)
+  - type: cron
+    name: fincoach-nightly
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    schedule: "0 18 * * *"
+    startCommand: "python -m app.cron.nightly"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NOTIFICATION_EMAIL
+        sync: false
+      - key: APP_ENV
+        value: "production"

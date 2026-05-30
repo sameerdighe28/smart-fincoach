@@ -119,5 +119,23 @@ export const api = {
 
   // Pipeline
   runPipeline: () => fetchAPI<any>("/api/pipeline/run", { method: "POST" }),
+  runNightly: () => fetchAPI<any>("/api/pipeline/nightly", { method: "POST" }),
+
+  // Financial Planning
+  getFySummary: (fyYear?: number) => {
+    const qs = fyYear ? `?fy_year=${fyYear}` : "";
+    return fetchAPI<any>(`/api/finance/fy-summary${qs}`);
+  },
+  getTaxPlanning: (fyYear?: number) => {
+    const qs = fyYear ? `?fy_year=${fyYear}` : "";
+    return fetchAPI<any>(`/api/finance/tax-planning${qs}`);
+  },
+  getDebtToIncome: () => fetchAPI<any>("/api/finance/debt-to-income"),
+  getEmergencyFund: () => fetchAPI<any>("/api/finance/emergency-fund"),
+  getFixedVsVariable: (month?: string) => {
+    const qs = month ? `?month=${month}` : "";
+    return fetchAPI<any>(`/api/finance/fixed-vs-variable${qs}`);
+  },
+  getHealthScore: () => fetchAPI<any>("/api/finance/health-score"),
 };
 

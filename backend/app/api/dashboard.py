@@ -15,6 +15,7 @@ from app.services.insights import (
 from app.services.budget_alerts import check_budgets_and_alert
 from app.services.reconciliation import reconcile_all, detect_self_transfers
 from app.services.categorization import categorize_all_uncategorized
+from app.services.nightly_analysis import run_nightly_analysis
 
 router = APIRouter(prefix="/api", tags=["dashboard", "insights"])
 
@@ -107,4 +108,13 @@ async def run_full_pipeline(db: AsyncSession = Depends(get_db)):
         "transactions_categorized": categorized,
         "alerts_created": alerts,
     }
+
+
+@router.post("/pipeline/nightly")
+async def run_nightly(db: AsyncSession = Depends(get_db)):
+    """Nightly LLM analysis — budget checks, anomalies, email notifications.
+    Can be triggered via cron (e.g., Render cron job) or manually."""
+    result = await run_nightly_analysis(db)
+    return result
+
 

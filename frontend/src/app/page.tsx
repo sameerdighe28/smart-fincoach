@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard, Upload, List, Gauge, RotateCcw, Cog, Zap, LogOut
+  LayoutDashboard, Upload, List, Gauge, RotateCcw, Cog, Zap, LogOut, Heart
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import FileUpload from "@/components/FileUpload";
 import TransactionList from "@/components/TransactionList";
 import BudgetView from "@/components/BudgetView";
 import SubscriptionView from "@/components/SubscriptionView";
+import FinancialHealthView from "@/components/FinancialHealthView";
 import LoginPage from "@/components/LoginPage";
 import { api } from "@/lib/api";
 
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { id: "upload", label: "Upload", icon: Upload },
   { id: "transactions", label: "Transactions", icon: List },
   { id: "budgets", label: "Budgets", icon: Gauge },
+  { id: "health", label: "Financial Health", icon: Heart },
   { id: "subscriptions", label: "Subscriptions", icon: RotateCcw },
 ];
 
@@ -122,6 +124,7 @@ export default function Home() {
           )}
           {activeTab === "transactions" && <TransactionList />}
           {activeTab === "budgets" && <BudgetView />}
+          {activeTab === "health" && <FinancialHealthView />}
           {activeTab === "subscriptions" && <SubscriptionView />}
         </main>
       </div>

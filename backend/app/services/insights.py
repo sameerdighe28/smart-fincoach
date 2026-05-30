@@ -38,7 +38,8 @@ async def get_month_summary(db: AsyncSession, month_date: date) -> MonthSummary:
     income = await _sum(False, TransactionType.INCOME)
     expense = await _sum(True, TransactionType.EXPENSE)
     transfer = await _sum(True, TransactionType.TRANSFER)
-    savings = income - expense
+    investment = await _sum(True, TransactionType.INVESTMENT)
+    savings = income - expense - investment
     rate = float(savings / income * 100) if income > 0 else 0
 
     return MonthSummary(
@@ -46,6 +47,7 @@ async def get_month_summary(db: AsyncSession, month_date: date) -> MonthSummary:
         total_income=income,
         total_expense=expense,
         total_transfer=transfer,
+        total_investment=investment,
         savings=savings,
         savings_rate=round(rate, 1),
     )

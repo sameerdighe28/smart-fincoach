@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "change-me-jwt-secret-use-openssl-rand-hex-32"
     JWT_EXPIRY_HOURS: int = 24
 
+    # Notifications (Resend free tier: 3000 emails/month)
+    RESEND_API_KEY: str = ""
+    NOTIFICATION_EMAIL: str = ""  # Where to send nightly reports
+
     # Upload
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
     MAX_UPLOAD_SIZE_MB: int = 20

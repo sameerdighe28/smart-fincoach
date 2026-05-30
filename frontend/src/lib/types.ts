@@ -83,6 +83,7 @@ export interface MonthSummary {
   total_income: number;
   total_expense: number;
   total_transfer: number;
+  total_investment: number;
   savings: number;
   savings_rate: number;
 }

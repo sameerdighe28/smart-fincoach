@@ -10,6 +10,7 @@ from app.core.database import engine, Base, async_session
 from app.core.seed import seed_categories_and_rules
 from app.api import uploads, transactions, categories, dashboard
 from app.api.auth import router as auth_router, verify_token
+from app.api.financial_planning import router as finance_router
 from fastapi import Depends
 
 
@@ -49,6 +50,7 @@ app.include_router(uploads.router, dependencies=[Depends(verify_token)])
 app.include_router(transactions.router, dependencies=[Depends(verify_token)])
 app.include_router(categories.router, dependencies=[Depends(verify_token)])
 app.include_router(dashboard.router, dependencies=[Depends(verify_token)])
+app.include_router(finance_router, dependencies=[Depends(verify_token)])
 
 
 @app.get("/api/health")
