@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard, Upload, List, Gauge, RotateCcw, Cog, Zap, LogOut, Heart
+  LayoutDashboard, Upload, List, Gauge, RotateCcw, Settings, Zap, LogOut, Heart
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import FileUpload from "@/components/FileUpload";
@@ -9,6 +9,7 @@ import TransactionList from "@/components/TransactionList";
 import BudgetView from "@/components/BudgetView";
 import SubscriptionView from "@/components/SubscriptionView";
 import FinancialHealthView from "@/components/FinancialHealthView";
+import SettingsView from "@/components/SettingsView";
 import LoginPage from "@/components/LoginPage";
 import { api } from "@/lib/api";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { id: "budgets", label: "Budgets", icon: Gauge },
   { id: "health", label: "Financial Health", icon: Heart },
   { id: "subscriptions", label: "Subscriptions", icon: RotateCcw },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export default function Home() {
@@ -126,6 +128,7 @@ export default function Home() {
           {activeTab === "budgets" && <BudgetView />}
           {activeTab === "health" && <FinancialHealthView />}
           {activeTab === "subscriptions" && <SubscriptionView />}
+          {activeTab === "settings" && <SettingsView />}
         </main>
       </div>
 
